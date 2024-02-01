@@ -2,20 +2,18 @@ version: '3.7'
 
 services:
 
-    application:
-        container_name: application
-        tty: true
-        build:
-          context: ./node
-          dockerfile: Dockerfile
-        entrypoint: dockerize -wait tcp://dbt:3306 -timeout 20s sh -c "npm run dev"
+    appserver:
+        build: .
+        container_name: appserver
+        working_dir: /app
         volumes:
-          - ./:/usr/src/app
+            - .:/app
+        tty: true
+        entrypoint: dockerize -wait tcp://dbt:3306 -timeout 20s sh -c "npm ci && npm run dev"
         networks:
             - node-network
         depends_on: 
             - dbt 
-
     nginx:
         build:
            context: ./nginx
@@ -25,11 +23,9 @@ services:
         volumes:
             - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
         depends_on:
-            - application
+            - appserver
         networks:
             - node-network
-
-
     dbt:
         image: mysql:5.7
         container_name: dbt
@@ -46,8 +42,8 @@ services:
 
 
 volumes:
-  dbt:
-    driver: "local"
+   dbt:
+     driver: "local"
 
 
 networks:
